@@ -260,8 +260,9 @@ class encoderThread (threading.Thread):
 			n = ser.inWaiting()
 			while n < 4:		
 				n = ser.inWaiting()	
-			data = ser.read(4)
-			self.yaw = struct.unpack('f', data[0])[0]
+			datayaw = ser.read(4)
+			
+			self.yaw = struct.unpack('f', datayaw)[0]
 			print 'yaw=',  self.yaw, '\n'
 			
 		sleep(0.01)
