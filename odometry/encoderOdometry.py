@@ -212,6 +212,7 @@ class encoderThread (threading.Thread):
 		self.serial = serial
 		self.encoder1 = 0
 		self.encoder2 = 0
+		self.yaw=0.
         
        
     def getEnc2(self):
@@ -219,6 +220,9 @@ class encoderThread (threading.Thread):
     	
     def getEnc1(self):
     	return self.encoder1
+
+    def getYaw(self):
+	return self.yaw
     
     def addTics(self):
     	interval1 = self.encoder1 - self.lastEncoder1
@@ -250,6 +254,15 @@ class encoderThread (threading.Thread):
 			data = ser.read(4)
 			self.encoder2 = struct.unpack('B', data[0])[0]
 			#print 'encoder 2=',  self.encoder2, '\n'
+
+			typedata = ser.read(1)
+			#print 'incoming type=', struct.unpack('B', typedata[0])[0]
+			n = ser.inWaiting()
+			while n < 4:		
+				n = ser.inWaiting()	
+			data = ser.read(4)
+			self.yaw = struct.unpack('f', data[0])[0]
+			print 'yaw=',  self.yaw, '\n'
 			
 		sleep(0.01)
    
