@@ -1,0 +1,9 @@
+<package format="2">
+  <name>robot_launch</name>
+  <version>1.0.0</version>
+  <description>
+  Robot launch
+  </description>
+  <maintainer email="german.m.garcia@gmail.com">German Martin</maintainer>
+  <license>BSD</license>
+</package>

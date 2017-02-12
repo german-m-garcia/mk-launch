@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot name="tank1">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://system_setup/meshes/tank.stl"/>
+      </geometry>
+    </visual>
+  </link>
+
+  
+  
+  
+</robot>
