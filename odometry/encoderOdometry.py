@@ -132,6 +132,8 @@ class odometryThread(threading.Thread):
 	
 	"""
 	def updateTicks(self):
+		#update the yaw directly from the encoder
+		self.yaw = self.encoder.getYaw()
 		curEnc1 = self.encoder.getEnc1()
 		if abs(curEnc1 - self.lastEncoder1) > 122:
 			if curEnc1 > 122:
@@ -180,12 +182,17 @@ class odometryThread(threading.Thread):
 		if  sign(self.tics1) != sign(self.tics2):
 			self.x = self.x + self.m_tic * (-self.tics2) * math.cos(self.theta)
 			self.y = self.y + self.m_tic * (-self.tics2) * math.sin(self.theta)
+		
+		else:
+			self.theta = self.yaw
+		
+		
 		#we are rotating left
-		elif self.tics1 <=0 and self.tics2 <= 0:
-			self.theta = self.theta + (-self.tics2) * self.rad_tic
+		#elif self.tics1 <=0 and self.tics2 <= 0:
+		#	self.theta = self.theta + (-self.tics2) * self.rad_tic
 		#we are rotating right
-		elif self.tics1 >= 0 and self.tics2 >= 0:
-			self.theta = self.theta + (-self.tics2) * self.rad_tic
+		#elif self.tics1 >= 0 and self.tics2 >= 0:
+		#	self.theta = self.theta + (-self.tics2) * self.rad_tic
 		
 		#print 'x=', self.x
 		#print 'y=', self.y
@@ -213,6 +220,7 @@ class encoderThread (threading.Thread):
 		self.encoder1 = 0
 		self.encoder2 = 0
 		self.yaw=0.
+		self.last_yaw = 0.
         
        
     def getEnc2(self):
@@ -262,8 +270,19 @@ class encoderThread (threading.Thread):
 				n = ser.inWaiting()	
 			datayaw = ser.read(4)
 			
-			self.yaw = struct.unpack('f', datayaw)[0]
-			print 'yaw=',  self.yaw, '\n'
+			cur_yaw = struct.unpack('f', datayaw)[0]
+			update_yaw = (cur_yaw - self.last_yaw)
+			print 'update_yaw0=' ,update_yaw
+			if abs(update_yaw) < 0.04:
+				update_yaw = 0.0
+			#print 'update_yaw1=' ,update_yaw
+			#update_yaw = 0.0			
+			#print 'update_yaw2=' ,update_yaw
+			self.yaw = self.yaw +  update_yaw
+			print 'update_yaw3=' ,update_yaw, ' cur_yaw=', cur_yaw, ' last_yaw=', self.last_yaw , 'yaw=',  self.yaw, '\n'
+			self.last_yaw = cur_yaw
+
+			
 			
 		sleep(0.01)
    
