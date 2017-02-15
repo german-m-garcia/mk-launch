@@ -3,7 +3,7 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <mesh filename="package://system_setup/meshes/tank.stl"/>
+        <mesh filename="package://system_setup/meshes/robot.stl"/>
       </geometry>
     </visual>
   </link>

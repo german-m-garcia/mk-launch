@@ -133,7 +133,7 @@ class odometryThread(threading.Thread):
 	"""
 	def updateTicks(self):
 		#update the yaw directly from the encoder
-		self.yaw = self.encoder.getYaw()
+		self.yaw = -self.encoder.getYaw()*2.*3.141592/360.
 		curEnc1 = self.encoder.getEnc1()
 		if abs(curEnc1 - self.lastEncoder1) > 122:
 			if curEnc1 > 122:
@@ -272,14 +272,14 @@ class encoderThread (threading.Thread):
 			
 			cur_yaw = struct.unpack('f', datayaw)[0]
 			update_yaw = (cur_yaw - self.last_yaw)
-			print 'update_yaw0=' ,update_yaw
+			#print 'update_yaw0=' ,update_yaw
 			if abs(update_yaw) < 0.04:
 				update_yaw = 0.0
 			#print 'update_yaw1=' ,update_yaw
 			#update_yaw = 0.0			
 			#print 'update_yaw2=' ,update_yaw
 			self.yaw = self.yaw +  update_yaw
-			print 'update_yaw3=' ,update_yaw, ' cur_yaw=', cur_yaw, ' last_yaw=', self.last_yaw , 'yaw=',  self.yaw, '\n'
+			#print 'update_yaw3=' ,update_yaw, ' cur_yaw=', cur_yaw, ' last_yaw=', self.last_yaw , 'yaw=',  self.yaw, '\n'
 			self.last_yaw = cur_yaw
 
 			
