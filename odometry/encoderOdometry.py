@@ -21,6 +21,7 @@ import PyKDL as kdl
 # Messages
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Quaternion
+from gamecontrol.msg import Motioncmd
 
 #roslib.load_manifest('odom_publisher')
 
@@ -332,6 +333,36 @@ class _GetchWindows:
 
 getch = _Getch()
 
+	
+
+class ReadControls:
+
+	def __init__(self):
+		self.sched = Scheduler()
+		self.sched.start()        # start the scheduler
+		self.forward = 'F'
+		self.left = 'L'
+		self.right = 'R'
+		self.stop = ' '
+		self.backward = 'B'
+		self.command = ' '
+		self.subscriber = rospy.Subscriber("/motioncmd", Motioncmd, self.callback)
+		self.last_received = rospy.Time.now()
+		#check whether no command has been received
+		job = self.sched.add_interval_job(self.check_commands, seconds=0.05, args=[])
+
+	
+	def check_commands(self):
+		now = rospy.Time.now()
+		if now - self.last_received > 1000:
+			self.command = ' '
+		
+	
+	def callback(self,msg):
+		rospy.loginfo("motion command= %s", msg.command)
+		self.last_received = rospy.Time.now()
+		
+	
 
 class keyboardReadThread(threading.Thread):
 	def __init__(self, threadID, name):
@@ -393,15 +424,14 @@ if __name__ == '__main__':
 	# Create new threads
 	threadEncoder = encoderThread(1, "Thread-encoder", ser)
 	threadOdom = odometryThread(2,"Thread-odometry", threadEncoder,odometryPublisher)
-	threadKeyboard = keyboardReadThread(3, "Thread-keyboard")
-	
-	
-	
+	#threadKeyboard = keyboardReadThread(3, "Thread-keyboard")
+	readControls = ReadControls()
+		
 	
 	#start the threads
 	threadEncoder.start()	
 	threadOdom.start()	
-	threadKeyboard.start()
+	#threadKeyboard.start()
 	
 	iterations = 0	
 	start_time = time.time()
@@ -425,20 +455,20 @@ if __name__ == '__main__':
 
 	
 	#	quit()
-	
-	
+
+	rospy.spin()
 	while 1:		
 		
-		if threadKeyboard.getCommand() == 'F':
-			ser.write(b'F')
-		elif threadKeyboard.getCommand() == 'B':
-			ser.write(b'B')
-		elif threadKeyboard.getCommand() == 'L':
-			ser.write(b'L')
-		elif threadKeyboard.getCommand() == 'R':
-			ser.write(b'R')
-		else:
-			ser.write(b' ')
+		#if threadKeyboard.getCommand() == 'F':
+		#	ser.write(b'F')
+		#elif threadKeyboard.getCommand() == 'B':
+		#	ser.write(b'B')
+		#elif threadKeyboard.getCommand() == 'L':
+		#	ser.write(b'L')
+		#elif threadKeyboard.getCommand() == 'R':
+		#	ser.write(b'R')
+		#else:
+		#	ser.write(b' ')
 			
 		
 		sleep(0.05)	
