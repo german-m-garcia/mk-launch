@@ -24,6 +24,8 @@ class GamepadReader():
   def publish_commands(self):
     msg = Motioncmd()
     msg.command = self.command
+    msg.header.stamp = rospy.get_rostime()
+    msg.header.frame_id = 'base_link'
     self.pub.publish(msg)  
   
   def loop(self):  
