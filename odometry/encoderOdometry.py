@@ -181,8 +181,8 @@ class odometryThread(threading.Thread):
 	def updateOdometry(self):
 		#we are moving forward or backwards		
 		if  sign(self.tics1) != sign(self.tics2):
-			self.x = self.x + self.m_tic * (-self.tics2) * math.cos(self.theta)
-			self.y = self.y + self.m_tic * (-self.tics2) * math.sin(self.theta)
+			self.x = self.x + self.m_tic * (self.tics2) * math.cos(self.theta)
+			self.y = self.y + self.m_tic * (self.tics2) * math.sin(self.theta)
 		
 		else:
 			self.theta = self.yaw
@@ -335,9 +335,12 @@ getch = _Getch()
 
 	
 
-class ReadControls:
+class ReadControls(threading.Thread):
 
-	def __init__(self):
+	def __init__(self, threadID, name):
+		threading.Thread.__init__(self)
+		self.threadID = threadID
+		self.name = name
 		self.sched = Scheduler()
 		self.sched.start()        # start the scheduler
 		self.forward = 'F'
@@ -359,8 +362,12 @@ class ReadControls:
 		
 	
 	def callback(self,msg):
-		rospy.loginfo("motion command= %s", msg.command)
+		#rospy.loginfo("motion command= %s", msg.command)
 		self.last_received = rospy.Time.now()
+		self.command = msg.command
+
+	def getCommand(self):
+		return self.command
 		
 	
 
@@ -425,7 +432,7 @@ if __name__ == '__main__':
 	threadEncoder = encoderThread(1, "Thread-encoder", ser)
 	threadOdom = odometryThread(2,"Thread-odometry", threadEncoder,odometryPublisher)
 	#threadKeyboard = keyboardReadThread(3, "Thread-keyboard")
-	readControls = ReadControls()
+	readControls = ReadControls(3, 'Thread-readcontrols')
 		
 	
 	#start the threads
@@ -456,8 +463,23 @@ if __name__ == '__main__':
 	
 	#	quit()
 
-	rospy.spin()
-	while 1:		
+	
+	while 1:
+	
+		cmd = readControls.getCommand()		
+		
+		if cmd == 'F':
+			ser.write(b'F')
+		elif cmd == 'B':
+			ser.write(b'B')
+		elif cmd == 'L':
+			ser.write(b'L')
+		elif cmd == 'R':
+			ser.write(b'R')
+		else:
+			ser.write(b' ')
+		print('command read in main loop=', cmd)
+				
 		
 		#if threadKeyboard.getCommand() == 'F':
 		#	ser.write(b'F')

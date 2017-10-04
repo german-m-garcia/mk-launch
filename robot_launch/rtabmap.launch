@@ -76,7 +76,7 @@
   <arg name="subscribe_scan_cloud"    default="false"/>
   <arg name="scan_cloud_topic"        default="/scan_cloud"/>
    
-  <arg name="visual_odometry"         default="true"/>          <!-- Launch rtabmap visual odometry node -->
+  <arg name="visual_odometry"         default="false"/>          <!-- Launch rtabmap visual odometry node -->
   <arg name="odom_topic"              default="/odom"/>         <!-- Odometry topic used if visual_odometry is false -->
   <arg name="odom_args"               default="$(arg rtabmap_args)"/>
   
@@ -169,7 +169,7 @@
 
 	<!-- optimisation of the performance... -->	
 	<param name="Vis/CorType" value="0"/>
-	<!--param name="Reg/Force3DoF" value="false"/-->
+	<param name="Reg/Force3DoF" value="true"/>
     </node>
   
     <!-- Visualisation RTAB-Map -->
