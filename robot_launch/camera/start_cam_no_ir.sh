@@ -10,23 +10,19 @@ cmdsCore="roscore"
 optionsCore+=($tab  -e "bash -c \"$cmdsCore ; bash\"" ) 
 gnome-terminal "${optionsCore[@]}"
 
-sleep 2
+sleep 1
 
 
 #start up the camera nodes
-cmds[1]="roslaunch robot_launch cameras.launch"
+cmds[1]="cd ../launch; roslaunch r200_no_ir.launch"
+
 
 #start the slam node
-cmds[2]="roslaunch robot_launch rtabmap.launch"
-
-#start up the odometry
-cmds[3]="roscd odometry; python encoderOdometry.py "
-
-#start up RVIZ
-#cmds[4]="rviz -d ~/.rviz/slam.rviz"
+cmds[2]="sleep 3; rosparam set /camera/driver/r200_emitter_enabled 0"
 
 
-for i in 1 2 3; do
+
+for i in 1 2; do
   options+=($tab  -e "bash -c \"${cmds[i]} ; bash\"" )          
 done
 
@@ -34,3 +30,4 @@ gnome-terminal "${options[@]}"
 
 
 exit 0
+

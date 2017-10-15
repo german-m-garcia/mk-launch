@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from megapi import *
 import sys
 import select
@@ -23,12 +24,13 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point, Quaternion
 from gamecontrol.msg import Motioncmd
 
-#roslib.load_manifest('odom_publisher')
+#to register  an exit function
+import atexit
 
-
+# whether debug information should be printed
+debug = False
 
 class RosOdomPublisher:
-
 	def __init__(self):
 		rospy.init_node('odometryPublisher', anonymous=True)
 		
@@ -224,6 +226,10 @@ class encoderThread (threading.Thread):
 		self.last_yaw = 0.
         
        
+    def __del__(self):
+    	print('shutting down serial port')
+    	self.serial.close()
+    
     def getEnc2(self):
     	return self.encoder2
     	
@@ -239,7 +245,8 @@ class encoderThread (threading.Thread):
     
     def run(self):
         #print "Starting " + self.name
-        while 1:
+        #while 1:
+        while not rospy.is_shutdown():		
 		n = ser.inWaiting()
 		if n > 0:
 			#print  n,' bytes available', '\n'
@@ -464,36 +471,41 @@ if __name__ == '__main__':
 	#	quit()
 
 	
-	while 1:
+	try:
+		while not rospy.is_shutdown():
 	
-		cmd = readControls.getCommand()		
+			cmd = readControls.getCommand()		
 		
-		if cmd == 'F':
-			ser.write(b'F')
-		elif cmd == 'B':
-			ser.write(b'B')
-		elif cmd == 'L':
-			ser.write(b'L')
-		elif cmd == 'R':
-			ser.write(b'R')
-		else:
-			ser.write(b' ')
-		print('command read in main loop=', cmd)
+			if cmd == 'F':
+				ser.write(b'F')
+			elif cmd == 'B':
+				ser.write(b'B')
+			elif cmd == 'L':
+				ser.write(b'L')
+			elif cmd == 'R':
+				ser.write(b'R')
+			else:
+				ser.write(b' ')
+			if debug:
+				print('command read in main loop=', cmd)
 				
 		
-		#if threadKeyboard.getCommand() == 'F':
-		#	ser.write(b'F')
-		#elif threadKeyboard.getCommand() == 'B':
-		#	ser.write(b'B')
-		#elif threadKeyboard.getCommand() == 'L':
-		#	ser.write(b'L')
-		#elif threadKeyboard.getCommand() == 'R':
-		#	ser.write(b'R')
-		#else:
-		#	ser.write(b' ')
+			#if threadKeyboard.getCommand() == 'F':
+			#	ser.write(b'F')
+			#elif threadKeyboard.getCommand() == 'B':
+			#	ser.write(b'B')
+			#elif threadKeyboard.getCommand() == 'L':
+			#	ser.write(b'L')
+			#elif threadKeyboard.getCommand() == 'R':
+			#	ser.write(b'R')
+			#else:
+			#	ser.write(b' ')
 			
 		
-		sleep(0.05)	
+			sleep(0.05)
+	except rospy.ROSInterruptException:		
+		print('exiting')
+		pass	
 		
 		
 		
