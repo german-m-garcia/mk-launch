@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from inputs import get_gamepad
 from inputs import get_key
 from inputs import get_mouse
@@ -30,9 +31,9 @@ class GamepadReader():
   
   def loop(self):  
 
-	
-	while 1:
-	  events = get_gamepad()
+	rate = rospy.Rate(100) # 100hz
+	while not rospy.is_shutdown():
+	  events = get_gamepad()  
 	  
 	  for event in events:
 		if event.ev_type == 'Absolute':
@@ -58,9 +59,7 @@ class GamepadReader():
 			  if event.state == 255:
 			    self.command = 'B'
 			    print('move backward')
-			 
-    
-    
+	  rate.sleep()    
 	  #print(event.ev_type, event.code, event.state)
 
 
@@ -69,4 +68,8 @@ class GamepadReader():
 if __name__ == '__main__': 
 
   gamepad = GamepadReader()
-  gamepad.loop()
+  try:
+  	gamepad.loop()
+  except rospy.ROSInterruptException:		
+		print('exiting gamepad node')
+		pass	
