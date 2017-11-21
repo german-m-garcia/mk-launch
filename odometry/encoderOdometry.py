@@ -34,21 +34,23 @@ class RosOdomPublisher:
 	def __init__(self):
 		rospy.init_node('odometryPublisher', anonymous=True)
 		
-		self.gps_ekf_odom_pub = rospy.Publisher('/odom', Odometry)
+		self.gps_ekf_odom_pub = rospy.Publisher('/makeblock/odom', Odometry)
 		self.tf_br = tf.TransformBroadcaster()
 
 		self.publish_odom_tf = True
 
-		self.frame_id = '/odom'
-		self.child_frame_id = '/base_link'
+		self.frame_id = 'odom'
+		self.child_frame_id = 'base_link'
 
 		# Covariance
-		self.P = np.mat(np.diag([0.0]*3))
-		self.x = self.y = self.z = 0
-		self.theta = 0
+		self.P = np.mat(np.diag([0.1]*3))		
+		self.P[2,2] = 0.2
+		self.vx = self.vy = self.x = self.y = self.z = 0
+		self.w = self.theta = 0
 		
 
-	def publish_odom(self,x,y,theta):
+	def publish_odom(self,x,y,theta, vx, vy, w):
+
 		msg = Odometry()
 		msg.header.stamp = rospy.Time.now()
 		msg.header.frame_id = self.frame_id # i.e. '/odom'
@@ -56,14 +58,20 @@ class RosOdomPublisher:
 		self.x = x
 		self.y = y
 		self.theta = theta
+		
+		self.vx = vx
+		self.vy = vy
+		self.w = w
 
+
+		#pose part
 		msg.pose.pose.position = Point(self.x, self.y, self.z)
 		msg.pose.pose.orientation = Quaternion(*(kdl.Rotation.RPY(0, 0, self.theta).GetQuaternion()))
 
 		p_cov = np.array([0.0]*36).reshape(6,6)
 
 		# position covariance
-		p_cov[0:2,0:2] = self.P[0:2,0:2]
+		p_cov[0:2,0:2] = self.P[0:2,0:2]		
 		# orientation covariance for Yaw
 		# x and Yaw
 		p_cov[5,0] = p_cov[0,5] = self.P[2,0]
@@ -71,6 +79,11 @@ class RosOdomPublisher:
 		p_cov[5,1] = p_cov[1,5] = self.P[2,1]
 		# Yaw and Yaw
 		p_cov[5,5] = self.P[2,2]
+		p_cov[4,4] = self.P[2,2]
+		p_cov[3,3] = self.P[2,2]
+		p_cov[2,2] = self.P[0,0]
+		p_cov[1,1] = self.P[0,0]
+		p_cov[0,0] = self.P[0,0]		
 
 		msg.pose.covariance = tuple(p_cov.ravel().tolist())
 
@@ -82,6 +95,13 @@ class RosOdomPublisher:
 			 msg.pose.pose.orientation.y,
 			 msg.pose.pose.orientation.z,
 			 msg.pose.pose.orientation.w)
+		
+			 
+		#twist part
+		msg.twist.twist.linear.x = self.vx
+		msg.twist.twist.linear.y = self.vy
+		msg.twist.twist.angular.z  = self.w
+		#print('publishing odometry')		 	
 
 		# Publish odometry message
 		self.gps_ekf_odom_pub.publish(msg)
@@ -115,14 +135,20 @@ class odometryThread(threading.Thread):
 		self.tics2 = 0
 		self.accTics1 = 0
 		self.accTics2 = 0
+		self.seconds = 0.04 #0.05 ms = time interval in which odometry is checked
 		logging.basicConfig()
 		
 		#odometry: pose=(x,y,theta)
-		self.m_tic = 0.000434783 #meters per tic
+		self.m_tic = 0.00038 #meters per tic
 		self.rad_tic = 0.003	#radians per tic
 		self.x = 0.
 		self.y = 0.
 		self.theta = 0.
+		self.last_theta = 0.
+		
+		self.vx = 0.
+		self.vy = 0.
+		self.w = 0.
 		self.rosOdometry = rosOdomPublisher
 	
 	"""
@@ -136,7 +162,8 @@ class odometryThread(threading.Thread):
 	"""
 	def updateTicks(self):
 		#update the yaw directly from the encoder
-		self.yaw = -self.encoder.getYaw()*2.*3.141592/360.
+		self.yaw = -self.encoder.getYaw()*2.*3.14159265359/360.
+		#print 'arduino yaw=', self.yaw
 		curEnc1 = self.encoder.getEnc1()
 		if abs(curEnc1 - self.lastEncoder1) > 122:
 			if curEnc1 > 122:
@@ -170,7 +197,7 @@ class odometryThread(threading.Thread):
 		#print 'acc tics2=', self.accTics2
 		
 		self.updateOdometry()
-		self.rosOdometry.publish_odom(self.x,self.y,self.theta)
+		self.rosOdometry.publish_odom(self.x,self.y,self.theta, self.vx, self.vy, self.w)
 		
 	def rotating(self):
 		if self.tics1 > 0 and self.tics2> 0:
@@ -185,11 +212,20 @@ class odometryThread(threading.Thread):
 		if  sign(self.tics1) != sign(self.tics2):
 			self.x = self.x + self.m_tic * (self.tics2) * math.cos(self.theta)
 			self.y = self.y + self.m_tic * (self.tics2) * math.sin(self.theta)
+			
+			#the angle can also change here
+			self.theta = self.yaw
 		
 		else:
 			self.theta = self.yaw
+			
+		#update the velocities
+		self.vx = self.m_tic * (self.tics2) * math.cos(self.theta) / self.seconds
+		self.vy = self.m_tic * (self.tics2) * math.sin(self.theta) / self.seconds
+		self.w = (self.theta - self.last_theta) / self.seconds
+		self.last_theta = self.theta
 		
-		
+		#print('updated odometry')
 		#we are rotating left
 		#elif self.tics1 <=0 and self.tics2 <= 0:
 		#	self.theta = self.theta + (-self.tics2) * self.rad_tic
@@ -202,7 +238,8 @@ class odometryThread(threading.Thread):
 		#print 'theta=', self.theta
 	
 	def run(self):
-		job = self.sched.add_interval_job(self.updateTicks, seconds=0.05, args=[])
+		#job = self.sched.add_interval_job(self.updateTicks, seconds=0.04, args=[])
+		job = self.sched.add_interval_job(self.updateTicks, seconds = self.seconds, args=[])
  		
 		
 		
