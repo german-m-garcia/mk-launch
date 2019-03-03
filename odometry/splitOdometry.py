@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from megapi import *
+
 import sys
 import select
-sys.path.insert(1,'/home/tomatito/makeblock/PythonForMegaPi/src')
+sys.path.insert(1,'/home/tomatito/ws/src/makeblock/PythonForMegaPi/src')
+from megapi import *
 import threading
 
 
@@ -26,13 +27,74 @@ from gamecontrol.msg import Motioncmd
 
 
 from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Joy
 
 #to register  an exit function
 import atexit
 import covariances
 
+# to pack floats
+import struct
+
 # whether debug information should be printed
 debug = False
+
+def map(v, in_min, in_max, out_min, out_max):
+	# Check that the value is at least in_min
+	if v < in_min:
+		v = in_min
+	# Check that the value is at most in_max
+	if v > in_max:
+		v = in_max
+	return (v - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
+
+def joystickToDiff(x, y, minJoystick, maxJoystick, minSpeed, maxSpeed):
+	# If x and y are 0, then there is not much to calculate...
+	if x == 0 and y == 0:
+		return (0, 0)
+    
+
+	# First Compute the angle in deg
+	# First hypotenuse
+	z = math.sqrt(x * x + y * y)
+
+	# angle in radians
+	rad = math.acos(math.fabs(x) / z)
+
+	# and in degrees
+	angle = rad * 180 / math.pi
+
+	# Now angle indicates the measure of turn
+	# Along a straight line, with an angle o, the turn co-efficient is same
+	# this applies for angles between 0-90, with angle 0 the coeff is -1
+	# with angle 45, the co-efficient is 0 and with angle 90, it is 1
+
+	tcoeff = -1 + (angle / 90) * 2
+	turn = tcoeff * math.fabs(math.fabs(y) - math.fabs(x))
+	turn = round(turn * 100, 0) / 100
+
+	# And max of y or x is the movement
+	mov = max(math.fabs(y), math.fabs(x))
+
+	# First and third quadrant
+	if (x >= 0 and y >= 0) or (x < 0 and y < 0):
+		rawLeft = mov
+		rawRight = turn
+	else:
+		rawRight = mov
+		rawLeft = turn
+
+	# Reverse polarity
+	if y < 0:
+		rawLeft = 0 - rawLeft
+		rawRight = 0 - rawRight
+
+	# minJoystick, maxJoystick, minSpeed, maxSpeed
+	# Map the values onto the defined rang
+	rightOut = map(-rawRight, minJoystick, maxJoystick, minSpeed, maxSpeed)
+	leftOut = map(rawLeft, minJoystick, maxJoystick, minSpeed, maxSpeed)
+
+	return (rightOut, leftOut)
 
 
 class RosOdomPublisher:
@@ -410,13 +472,9 @@ class ReadControls(threading.Thread):
 		self.name = name
 		self.sched = Scheduler()
 		self.sched.start()        # start the scheduler
-		self.forward = 'F'
-		self.left = 'L'
-		self.right = 'R'
-		self.stop = ' '
-		self.backward = 'B'
-		self.command = ' '
-		self.subscriber = rospy.Subscriber("/motioncmd", Motioncmd, self.callback)
+		self.x = 0
+		self.y = 0		
+		self.subscriber = rospy.Subscriber("/joystick", Joy, self.callback)
 		self.last_received = rospy.Time.now()
 		#check whether no command has been received
 		job = self.sched.add_interval_job(self.check_commands, seconds=0.05, args=[])
@@ -425,16 +483,22 @@ class ReadControls(threading.Thread):
 	def check_commands(self):
 		now = rospy.Time.now()
 		if now - self.last_received > 1000:
-			self.command = ' '
+			self.x = 0
+			self.y = 0
 		
 	
 	def callback(self,msg):
 		#rospy.loginfo("motion command= %s", msg.command)
 		self.last_received = rospy.Time.now()
-		self.command = msg.command
+		
+		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.axes)
+		(rightOut, leftOut) = joystickToDiff(msg.axes[0], msg.axes[1], -1, 1, -125., 125)
+		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", (rightOut, leftOut))
+		self.x = int(leftOut)
+		self.y = int(rightOut)
 
 	def getCommand(self):
-		return self.command
+		return (self.y, self.x)
 		
 	
 
@@ -499,6 +563,7 @@ if __name__ == '__main__':
 	threadEncoder = encoderThread(1, "Thread-encoder", ser)
 	threadOdom = odometryThread(2,"Thread-odometry", threadEncoder,odometryPublisher)
 	#threadKeyboard = keyboardReadThread(3, "Thread-keyboard")
+	
 	readControls = ReadControls(3, 'Thread-readcontrols')
 		
 	
@@ -511,55 +576,14 @@ if __name__ == '__main__':
 	start_time = time.time()
 	elapsed_time = time.time() - start_time
 
-
-	#if True:
-	#	while elapsed_time < 0.5:
-	#		sleep(0.02)
-	#		elapsed_time = time.time() - start_time
-	#		#print elapsed_time	
-	#		ser.write(b'F')
-		
-		#start_time = time.time()
-		#elapsed_time = time.time() - start_time
-		#while elapsed_time < 0.5:
-		#	sleep(0.02)
-		#	elapsed_time = time.time() - start_time
-		#	#print elapsed_time	
-		#	ser.write(b'R')
-
-	
-	#	quit()
-
 	
 	try:
 		while not rospy.is_shutdown():
 	
-			cmd = readControls.getCommand()		
-		
-			if cmd == 'F':
-				ser.write(b'F')
-			elif cmd == 'B':
-				ser.write(b'B')
-			elif cmd == 'L':
-				ser.write(b'L')
-			elif cmd == 'R':
-				ser.write(b'R')
-			else:
-				ser.write(b' ')
-			if debug:
-				print('command read in main loop=', cmd)
-				
-		
-			#if threadKeyboard.getCommand() == 'F':
-			#	ser.write(b'F')
-			#elif threadKeyboard.getCommand() == 'B':
-			#	ser.write(b'B')
-			#elif threadKeyboard.getCommand() == 'L':
-			#	ser.write(b'L')
-			#elif threadKeyboard.getCommand() == 'R':
-			#	ser.write(b'R')
-			#else:
-			#	ser.write(b' ')
+			cmd = readControls.getCommand()
+
+			ser.write(struct.pack('b', cmd[0]))
+			ser.write(struct.pack('b', cmd[1]))
 			
 		
 			sleep(0.05)
