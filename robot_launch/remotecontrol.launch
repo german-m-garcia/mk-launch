@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+	<node name="cam_receiver" pkg="nimbro_cam_transport" type="cam_receiver" output="screen" >
+		<remap from="/cam_receiver/encoded"        to="/vaapi_sender/encoded"/>
+	</node>
+	
+    <!--node name="gamecontrol" pkg="gamecontrol" type="gamepad.py" output="screen"/-->
+    <node name="joycontroller" pkg="joy" type="joy_node" output="screen"/>
+	
+    <node pkg="rviz" type="rviz" name="rviz" args="-d ~/.rviz/laser.rviz"/>
+
+</launch>
+
