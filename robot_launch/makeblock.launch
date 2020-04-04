@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	
+    <include file="$(find robot_launch)/robot.launch" />
+    <include file="$(find robot_launch)/unity3d/unity.launch" />
+    <include file="$(find robot_launch)/camera/cameras.launch" />
+    <include file="$(find nimbro_cam_transport)/launch/vaapisender.launch" />
+
+    <include file="$(find robot_launch)/rplidar/rplidar.launch" />
+    
+
+</launch>

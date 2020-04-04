@@ -1,0 +1,9 @@
+<package format="2">
+  <name>system_setup</name>
+  <version>1.0.0</version>
+  <description>
+  System setup
+  </description>
+  <maintainer email="german.m.garcia@gmail.com">German Martin</maintainer>
+  <license>BSD</license>
+</package>
