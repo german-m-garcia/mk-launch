@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	
+    <param name="/use_sim_time" value="true"/>
+
+    <param name="robot/name" value="mkROS" />
+	<param name="robot_description" textfile="$(find system_setup)/robotmodel.urdf" />
+
+   <!-- 2020-11-15-09-19-28.bag  2020-11-15-09-22-16.bag-->
+    <node pkg="rosbag" type="play" name="player" args="--clock -r 1   $(find srrg_nw_calibration_ros)/data/2020-11-15-09-22-16.bag"/>
+   
+	<!-- odometry -->
+	
+	<!-- calibrated values -->
+	<arg name="ticks_per_meter" value="2864" />
+    <arg name="wheel_separation" value="0.25" />
+    <arg name="odom_frame_id" value="world" />
+    <arg name="base_frame_id" value="base_link" />
+    <arg name="rate" value="30" />
+    
+    <node name="odom_publisher" pkg="diff_drive" type="diff_drive_odometry" output="screen">
+    	
+    	<param name="ticks_per_meter" value="$(arg ticks_per_meter)"/>
+    	<param name="wheel_separation" value="$(arg wheel_separation)"/>
+        <param name="odom_frame_id" value="$(arg odom_frame_id)"/>
+        <param name="rate" value="$(arg rate)"/>
+        <param name="base_frame_id" value="$(arg base_frame_id)"/>
+        
+        <remap  from="/lwheel_ticks" to="/makeblock/lwheel"/>
+        <remap  from="/rwheel_ticks" to="/makeblock/rwheel"/>
+    </node>
+
+
+</launch>
+

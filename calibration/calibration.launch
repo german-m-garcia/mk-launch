@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+	
+    <param name="/use_sim_time" value="true"/>
+
+    <param name="robot/name" value="mkROS" />
+	<param name="robot_description" textfile="$(find system_setup)/robotmodel.urdf" />
+
+    <!-- 2020-11-15-09-19-28.bag  2020-11-15-09-22-16.bag-->
+    <node pkg="rosbag" type="play" name="player" args="--clock -r 0.7  $(find srrg_nw_calibration_ros)/data/2020-11-15-09-22-16.bag"/>
+   
+    <!--include file="$(find srrg_scan_matcher_ros)/launch/srrg_scan_matcher.launch" /-->
+    <node pkg="laser_scan_matcher" type="laser_scan_matcher_node"   name="laser_scan_matcher_node" output="screen">
+
+        <param name="max_iterations" value="50"/>
+        
+        <param name="laser_scan_matcher_node/cloud_range_max" value="3.0"/>    
+        <param name="laser_scan_matcher_node/cloud_range_min" value="0.1"/>
+        
+        <!-- if either is 0: frame to frame matching -->
+        <param name="laser_scan_matcher_node/kf_dist_linear" value="0.0"/>
+        <param name="laser_scan_matcher_node/kf_dist_angular" value="0.0"/>
+        
+        
+        <param name="laser_scan_matcher_node/use_odom" value="false"/>
+        <param name="laser_scan_matcher_node/use_imu" value="false"/>
+        
+        <param name="laser_scan_matcher_node/max_correspondence_dist" value="0.02"/>
+        <param name="laser_scan_matcher_node/clustering_threshold" value="0.01"/>
+        <param name="laser_scan_matcher_node/do_alpha_test_thresholdDeg" value="5.0"/>
+        
+        <param name="laser_scan_matcher_node/orientation_neighbourhood" value="10"/>
+        <!-- if 0 : vanilla ICP -->     
+        <param name="laser_scan_matcher_node/use_point_to_line_distance" value="1"/>
+        <param name="laser_scan_matcher_node/debug_verify_tricks" value="1"/>
+    </node>
+
+    
+
+    <!-- launch-prefix="xterm -e gdb __args" -->
+    <node name="new_world_calibration_ros_node" pkg="srrg_nw_calibration_ros" type="new_world_calibration_ros_node" args="-guess $(find srrg_nw_calibration_ros)/init_guess/mk_params.txt -rate 7 -block 75" output="screen" >
+        
+        <remap  from="/joint_state" to="/joint_states"/>
+    </node>
+	
+
+
+</launch>
+
