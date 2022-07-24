@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <!--param name="ROS_IP" value="192.168.178.48"/-->
+  <param name="ROS_IP" value="$(env ROS_IP)"/>
+  <node name="server_endpoint" pkg="ros_tcp_endpoint" type="default_server_endpoint.py" args="--wait" output="screen" respawn="true" />
+ 
+  
+</launch>
