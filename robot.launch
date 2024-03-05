@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
-    <param name="robot/name" value="mkROS" />
+    <arg name="fullcalib" default="false"/>
+	
+	<param name="robot/name" value="mkROS" />
 	<param name="robot_description" textfile="$(find system_setup)/robotmodel.urdf" />
       
   
-	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
-	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+	<!--node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /-->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" >
+		<remap from="robot_description" to="robot_description"/>
+		<remap from="joint_states" to="joint_states"/>
+	</node>
 
 
 	<!--node pkg="tf" type="static_transform_publisher" name="laser_broadcaster" args="-0.07 0 0.14 0 0 0 1 base_link laser 100" /-->
-	<node pkg="tf" type="static_transform_publisher" name="camera_link_broadcaster" args="0.03 0 0.10 0 0 0 1 base_link camera_link 100" />
-
+	<group unless="$(eval fullcalib)">
+		<!--node pkg="tf" type="static_transform_publisher" name="camera_link_broadcaster" args="0.03 0 0.10 0 0 0 1 base_link camera_link 100" /-->
+		<node pkg="tf" type="static_transform_publisher" name="camera_link_broadcaster" args="-0.0050331  -0.0304928    0.100006 3.1356  3.12995 -3.12836 base_link camera_link 100" />
+	</group>
 
 </launch>
